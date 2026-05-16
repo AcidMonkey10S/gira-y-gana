@@ -196,16 +196,45 @@ for i in range(3):
     reel_state.append(init)
 
 
-# --- 4. GIRAR button --------------------------------------------------
-def make_btn_bmp(border_thick=2):
+# --- 4. GIRAR button (rounded "pill" shape) ----------------------
+BTN_RADIUS = 13                # corner radius -- ~ BTN_H / 2.5
+
+def _in_rounded_rect(x, y, w, h, r):
+    """True if (x, y) is inside a w x h rounded rect with corner radius r."""
+    if x < 0 or y < 0 or x >= w or y >= h:
+        return False
+    cx = x
+    if x < r:
+        cx = r
+    elif x > w - 1 - r:
+        cx = w - 1 - r
+    cy = y
+    if y < r:
+        cy = r
+    elif y > h - 1 - r:
+        cy = h - 1 - r
+    dx = x - cx
+    dy = y - cy
+    return dx * dx + dy * dy <= r * r
+
+
+def make_btn_bmp(radius=BTN_RADIUS, border_thick=2):
     b = displayio.Bitmap(BTN_W, BTN_H, 3)   # 0=transparent, 1=fill, 2=border
+    inner_r = radius - border_thick
+    if inner_r < 0:
+        inner_r = 0
     for y in range(BTN_H):
         for x in range(BTN_W):
-            on_border = (
-                x < border_thick or x >= BTN_W - border_thick
-                or y < border_thick or y >= BTN_H - border_thick
-            )
-            b[x, y] = 2 if on_border else 1
+            if not _in_rounded_rect(x, y, BTN_W, BTN_H, radius):
+                b[x, y] = 0                     # outside the pill -> transparent
+            elif not _in_rounded_rect(
+                    x - border_thick, y - border_thick,
+                    BTN_W - 2 * border_thick,
+                    BTN_H - 2 * border_thick,
+                    inner_r):
+                b[x, y] = 2                     # gold border ring
+            else:
+                b[x, y] = 1                     # red fill
     return b
 
 btn_bmp = make_btn_bmp()

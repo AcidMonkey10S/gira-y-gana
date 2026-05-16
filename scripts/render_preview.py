@@ -48,9 +48,11 @@ for c in range(3):
     draw.line([x0, pay_y_top, x0 + REEL_COL_W - 1, pay_y_top], fill=(255, 200, 40), width=1)
     draw.line([x0, pay_y_bot, x0 + REEL_COL_W - 1, pay_y_bot], fill=(255, 200, 40), width=1)
 
-# GIRAR button
-draw.rectangle([BTN_X, BTN_Y, BTN_X + BTN_W - 1, BTN_Y + BTN_H - 1],
-               fill=(200, 20, 40), outline=(255, 200, 40), width=2)
+# GIRAR button (rounded pill)
+BTN_R = 13
+draw.rounded_rectangle([BTN_X, BTN_Y, BTN_X + BTN_W - 1, BTN_Y + BTN_H - 1],
+                       radius=BTN_R, fill=(200, 20, 40),
+                       outline=(255, 200, 40), width=2)
 try:
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
 except Exception:
