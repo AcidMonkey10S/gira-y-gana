@@ -196,6 +196,50 @@ for i in range(3):
     reel_state.append(init)
 
 
+# --- 3b. payline arrows --> point at the MIDDLE (winning) row ----
+ARROW_W, ARROW_H = 14, 20
+
+def make_arrow_bmp(point_right):
+    """Filled triangle arrow as a 2-color displayio.Bitmap."""
+    bmp = displayio.Bitmap(ARROW_W, ARROW_H, 2)
+    cy = (ARROW_H - 1) / 2.0
+    for y in range(ARROW_H):
+        ratio = 1.0 - abs(y - cy) / cy        # 1.0 at center row, 0.0 at edges
+        max_x = int(ratio * (ARROW_W - 1))
+        if max_x < 0:
+            max_x = 0
+        for x in range(max_x + 1):
+            xx = x if point_right else (ARROW_W - 1 - x)
+            bmp[xx, y] = 1
+    return bmp
+
+arrow_pal = displayio.Palette(2)
+arrow_pal[0] = 0x000000
+arrow_pal.make_transparent(0)
+arrow_pal[1] = 0xFFC828                          # gold
+
+# vertical centre of the middle (payline) cell
+arrow_y_center = REEL_Y_TOP + BORDER + CELL + CELL // 2
+arrow_y_top    = arrow_y_center - ARROW_H // 2
+
+# left arrow: points RIGHT, sits just left of the leftmost reel
+left_arrow_bmp = make_arrow_bmp(point_right=True)
+root.append(displayio.TileGrid(
+    left_arrow_bmp, pixel_shader=arrow_pal,
+    x=REEL_X_START - ARROW_W - 4,
+    y=arrow_y_top,
+))
+
+# right arrow: points LEFT, sits just right of the rightmost reel
+right_arrow_bmp = make_arrow_bmp(point_right=False)
+last_reel_end = REEL_X_START + 3 * REEL_COL_W + 2 * COL_GAP
+root.append(displayio.TileGrid(
+    right_arrow_bmp, pixel_shader=arrow_pal,
+    x=last_reel_end + 4,
+    y=arrow_y_top,
+))
+
+
 # --- 4. GIRAR button (rounded "pill" shape) ----------------------
 BTN_RADIUS = 16                # corner radius -- ~ BTN_H / 2.5
 
@@ -288,10 +332,12 @@ def set_button_state(spinning):
     """Recolour the GIRAR button to give visual feedback."""
     if spinning:
         btn_pal[1] = 0x6E0814           # darker red while spinning
-        btn_label.color = 0xFFC828
+        btn_label.color = 0xFFC828      # GIRAR turns gold during spin
+        btn_label_shadow.color = 0xFFC828
     else:
         btn_pal[1] = 0xC81428           # idle red
-        btn_label.color = 0xFFFFFF
+        btn_label.color = BTN_LABEL_COLOR        # GIRAR back to BLACK
+        btn_label_shadow.color = BTN_LABEL_COLOR
 
 
 def update_reel(r, syms):
@@ -323,8 +369,9 @@ def play_spin(spin_idx):
     msg.text = ""
 
     locked = [False, False, False]
-    # stop the reels one after the other for a classic feel
-    stop_at = [time.monotonic() + d for d in (0.7, 1.1, 1.5)]
+    # Spin for ~5 s total: reel 1 stops at 3.0 s, reel 2 at 4.0 s,
+    # reel 3 at 5.0 s for a classic staggered finish.
+    stop_at = [time.monotonic() + d for d in (3.0, 4.0, 5.0)]
 
     while not all(locked):
         now = time.monotonic()

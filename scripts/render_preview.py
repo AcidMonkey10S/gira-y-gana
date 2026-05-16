@@ -53,6 +53,28 @@ BTN_R = 16
 draw.rounded_rectangle([BTN_X, BTN_Y, BTN_X + BTN_W - 1, BTN_Y + BTN_H - 1],
                        radius=BTN_R, fill=(200, 20, 40),
                        outline=(255, 200, 40), width=2)
+
+# Gold payline arrows pointing at the middle row
+ARROW_W, ARROW_H = 14, 20
+arrow_y_center = REEL_Y_TOP + BORDER + CELL + CELL // 2
+arrow_y_top = arrow_y_center - ARROW_H // 2
+last_reel_end = REEL_X_START + 3 * REEL_COL_W + 2 * COL_GAP
+
+# left arrow points right
+lx = REEL_X_START - ARROW_W - 4
+draw.polygon(
+    [(lx, arrow_y_top),
+     (lx, arrow_y_top + ARROW_H - 1),
+     (lx + ARROW_W - 1, arrow_y_top + ARROW_H // 2)],
+    fill=(255, 200, 40))
+
+# right arrow points left
+rx = last_reel_end + 4
+draw.polygon(
+    [(rx + ARROW_W - 1, arrow_y_top),
+     (rx + ARROW_W - 1, arrow_y_top + ARROW_H - 1),
+     (rx, arrow_y_top + ARROW_H // 2)],
+    fill=(255, 200, 40))
 try:
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
 except Exception:
