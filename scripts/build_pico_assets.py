@@ -22,6 +22,8 @@ displayio.TileGrid can pick which 60x60 tile to draw per reel - this
 is the same idiom the existing main.py already uses, just with real art.
 """
 import os
+import numpy as np
+from scipy import ndimage
 from PIL import Image, ImageOps
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,38 +41,57 @@ def flatten(img, bg_color=(0, 0, 0)):
     return out
 
 
-def load_symbol(path, white_thresh=235):
-    """Load a symbol image and return an RGBA with proper transparency.
+def remove_bg_flood(img, brightness_thresh=170, neutral_tol=25):
+    """Strip the white / light-grey background from a symbol image.
 
-    * PNG with alpha -> use the alpha as-is.
-    * JPG (or PNG with no alpha) -> treat near-white pixels as transparent
-      so the artwork sits cleanly on the slot's dark background.
+    Many of the source PNGs and JPGs that LOOK transparent actually have
+    a checkerboard pattern (alternating ~255 and ~200 grey) baked into
+    the RGB data, plus alpha=255 everywhere. Plain near-white thresholding
+    misses the grey squares.
+
+    Strategy:
+      1. classify every pixel as "background-coloured" if it is bright
+         AND neutral (R, G, B within `neutral_tol` of each other).
+      2. flood-fill from the four image edges through connected bg pixels.
+      3. only pixels CONNECTED to the edge become alpha=0 -- so interior
+         white highlights (sesame seeds, fry creases) stay opaque.
     """
-    img = Image.open(path)
-    if img.mode == "RGBA":
-        return img
-    img = img.convert("RGB")
     rgba = img.convert("RGBA")
-    px = rgba.load()
-    w, h = rgba.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, _ = px[x, y]
-            if r >= white_thresh and g >= white_thresh and b >= white_thresh:
-                px[x, y] = (r, g, b, 0)            # transparent
-    return rgba
+    arr  = np.array(rgba)
+    r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+    is_bg = (
+        (r >= brightness_thresh) &
+        (g >= brightness_thresh) &
+        (b >= brightness_thresh) &
+        (np.maximum.reduce([r, g, b]) - np.minimum.reduce([r, g, b])
+         <= neutral_tol)
+    )
+    labeled, _ = ndimage.label(is_bg)
+    edges = np.concatenate([
+        labeled[0, :], labeled[-1, :], labeled[:, 0], labeled[:, -1]
+    ])
+    edge_labels = set(int(v) for v in edges if v != 0)
+    if edge_labels:
+        final_bg = np.isin(labeled, list(edge_labels))
+        arr[:, :, 3] = np.where(final_bg, 0, arr[:, :, 3])
+    return Image.fromarray(arr, "RGBA")
 
 
-def auto_crop(rgba, padding=4):
-    """Crop the RGBA image tight around the visible (non-transparent) art,
-    then add a small padding so the symbol doesn't touch the cell edges."""
+def load_symbol(path):
+    """Open a symbol file and ALWAYS run edge-flood background removal.
+    Don't trust the file's alpha channel -- many "transparent" PNGs
+    are actually opaque with a baked-in checkerboard."""
+    return remove_bg_flood(Image.open(path))
+
+
+def auto_crop(rgba, padding=6):
+    """Crop tight around the visible (non-transparent) art, square pad."""
     bbox = rgba.getbbox()
     if bbox is None:
         return rgba
     rgba = rgba.crop(bbox)
-    # add padding for breathing room
     w, h = rgba.size
-    side = max(w, h) + 2 * padding                  # square canvas
+    side = max(w, h) + 2 * padding
     canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     canvas.paste(rgba, ((side - w) // 2, (side - h) // 2), rgba)
     return canvas
@@ -83,7 +104,6 @@ def to_indexed_bmp(rgb_img, out_path, colors=256, dither=True):
         method=Image.MEDIANCUT,
         dither=Image.FLOYDSTEINBERG if dither else Image.NONE,
     )
-    # PIL writes 8-bit indexed BMPs when mode == 'P'
     p.save(out_path, format="BMP")
     return p
 
