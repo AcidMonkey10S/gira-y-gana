@@ -15,7 +15,7 @@ Outputs (drop next to main.py on CIRCUITPY drive):
                                                   That's how we afford a full
                                                   320x240 background on the
                                                   RP2040 alongside picodvi.
-  frontend/public/circuitpython/symbols.bmp    (60x240,  8-bit indexed, ~14 KB)
+  frontend/public/circuitpython/symbols.bmp    (54x216, 8-bit indexed, ~12 KB)
 
 The symbols are stacked vertically into ONE sheet so a single
 displayio.TileGrid can pick which 60x60 tile to draw per reel - this
@@ -61,13 +61,16 @@ print("wrote bg.bmp", os.path.getsize(os.path.join(OUT, "bg.bmp")), "bytes")
 
 # ---------- symbol sheet (60x240, 4 stacked symbols) ----------
 order = ["burger", "wings", "coke", "fries"]   # MUST match NAMES in main.py
-sheet = Image.new("RGB", (60, 240), (0, 0, 0))
+CELL_SIZE = 54   # tile size in symbols.bmp -- MUST match CELL in main.py
+                 # (54px tiles let the 3x3 reel grid + GIRAR button all fit
+                 # on a 320x240 screen with comfortable margins.)
+sheet = Image.new("RGB", (CELL_SIZE, CELL_SIZE * len(order)), (0, 0, 0))
 for i, name in enumerate(order):
     p = os.path.join(SRC, "symbols", "pico60", f"{name}.png")
     s = flatten(Image.open(p), bg_color=(0, 0, 0))
-    if s.size != (60, 60):
-        s = s.resize((60, 60), Image.LANCZOS)
-    sheet.paste(s, (0, i * 60))
+    if s.size != (CELL_SIZE, CELL_SIZE):
+        s = s.resize((CELL_SIZE, CELL_SIZE), Image.LANCZOS)
+    sheet.paste(s, (0, i * CELL_SIZE))
 # 64 colours is plenty for 4 stylised cartoon symbols and keeps the BMP small
 to_indexed_bmp(sheet, os.path.join(OUT, "symbols.bmp"), colors=64)
 print("wrote symbols.bmp", os.path.getsize(os.path.join(OUT, "symbols.bmp")), "bytes")
