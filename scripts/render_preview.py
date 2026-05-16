@@ -54,27 +54,37 @@ draw.rounded_rectangle([BTN_X, BTN_Y, BTN_X + BTN_W - 1, BTN_Y + BTN_H - 1],
                        radius=BTN_R, fill=(200, 20, 40),
                        outline=(255, 200, 40), width=2)
 
-# Gold payline arrows pointing at the middle row
-ARROW_W, ARROW_H = 14, 20
+# Gold payline arrows (shaft + arrowhead) pointing at the middle row
+ARROW_W, ARROW_H = 28, 14
+ARROW_HEAD_W = 12
+ARROW_SHAFT_T = 4
 arrow_y_center = REEL_Y_TOP + BORDER + CELL + CELL // 2
 arrow_y_top = arrow_y_center - ARROW_H // 2
 last_reel_end = REEL_X_START + 3 * REEL_COL_W + 2 * COL_GAP
+GOLD = (255, 200, 40)
+shaft_y0 = arrow_y_top + (ARROW_H - ARROW_SHAFT_T) // 2
 
-# left arrow points right
+# left arrow: ===> (shaft on left, triangle head on right)
 lx = REEL_X_START - ARROW_W - 4
+draw.rectangle([lx, shaft_y0,
+                lx + (ARROW_W - ARROW_HEAD_W) - 1, shaft_y0 + ARROW_SHAFT_T - 1],
+               fill=GOLD)
 draw.polygon(
-    [(lx, arrow_y_top),
-     (lx, arrow_y_top + ARROW_H - 1),
+    [(lx + (ARROW_W - ARROW_HEAD_W), arrow_y_top),
+     (lx + (ARROW_W - ARROW_HEAD_W), arrow_y_top + ARROW_H - 1),
      (lx + ARROW_W - 1, arrow_y_top + ARROW_H // 2)],
-    fill=(255, 200, 40))
+    fill=GOLD)
 
-# right arrow points left
+# right arrow: <=== (triangle head on left, shaft on right)
 rx = last_reel_end + 4
 draw.polygon(
-    [(rx + ARROW_W - 1, arrow_y_top),
-     (rx + ARROW_W - 1, arrow_y_top + ARROW_H - 1),
+    [(rx + ARROW_HEAD_W - 1, arrow_y_top),
+     (rx + ARROW_HEAD_W - 1, arrow_y_top + ARROW_H - 1),
      (rx, arrow_y_top + ARROW_H // 2)],
-    fill=(255, 200, 40))
+    fill=GOLD)
+draw.rectangle([rx + ARROW_HEAD_W, shaft_y0,
+                rx + ARROW_W - 1, shaft_y0 + ARROW_SHAFT_T - 1],
+               fill=GOLD)
 try:
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
 except Exception:

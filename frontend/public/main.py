@@ -197,20 +197,46 @@ for i in range(3):
 
 
 # --- 3b. payline arrows --> point at the MIDDLE (winning) row ----
-ARROW_W, ARROW_H = 14, 20
+# Full arrow: a horizontal shaft + a triangular arrowhead, like ===>
+ARROW_W       = 28   # total bitmap width
+ARROW_H       = 14   # total bitmap height
+ARROW_HEAD_W  = 12   # width of the triangular head
+ARROW_SHAFT_T = 4    # thickness (vertical) of the shaft
 
 def make_arrow_bmp(point_right):
-    """Filled triangle arrow as a 2-color displayio.Bitmap."""
+    """Filled arrow bitmap: a shaft + a triangle head."""
     bmp = displayio.Bitmap(ARROW_W, ARROW_H, 2)
     cy = (ARROW_H - 1) / 2.0
-    for y in range(ARROW_H):
-        ratio = 1.0 - abs(y - cy) / cy        # 1.0 at center row, 0.0 at edges
-        max_x = int(ratio * (ARROW_W - 1))
-        if max_x < 0:
-            max_x = 0
-        for x in range(max_x + 1):
-            xx = x if point_right else (ARROW_W - 1 - x)
-            bmp[xx, y] = 1
+    shaft_y0 = (ARROW_H - ARROW_SHAFT_T) // 2
+    shaft_y1 = shaft_y0 + ARROW_SHAFT_T
+    shaft_w  = ARROW_W - ARROW_HEAD_W
+
+    if point_right:
+        # shaft on the LEFT (===)
+        for y in range(shaft_y0, shaft_y1):
+            for x in range(shaft_w):
+                bmp[x, y] = 1
+        # triangle head on the RIGHT (>)
+        for y in range(ARROW_H):
+            ratio = 1.0 - abs(y - cy) / cy
+            head_w = int(ratio * (ARROW_HEAD_W - 1))
+            if head_w < 0:
+                head_w = 0
+            for x in range(head_w + 1):
+                bmp[shaft_w + x, y] = 1
+    else:
+        # triangle head on the LEFT (<)
+        for y in range(ARROW_H):
+            ratio = 1.0 - abs(y - cy) / cy
+            head_w = int(ratio * (ARROW_HEAD_W - 1))
+            if head_w < 0:
+                head_w = 0
+            for x in range(head_w + 1):
+                bmp[ARROW_HEAD_W - 1 - x, y] = 1
+        # shaft on the RIGHT (===)
+        for y in range(shaft_y0, shaft_y1):
+            for x in range(ARROW_HEAD_W, ARROW_W):
+                bmp[x, y] = 1
     return bmp
 
 arrow_pal = displayio.Palette(2)
