@@ -102,25 +102,26 @@ btn.pull = digitalio.Pull.UP
 # -------------------- game tuning ----------------------------------
 WIN_EVERY = 50           # guaranteed 3-of-a-kind every Nth press
 
-CELL = 48                # symbol tile size in symbols.bmp
+CELL = 40                # symbol tile size in symbols.bmp
 N_SYM = 4
 NAMES = ("BURGER", "WINGS", "COKE", "FRIES")  # MUST match build_pico_assets.py
 
-# 3 x 3 reel grid -- placed UNDER the bg title and ABOVE the GIRAR button
+# 3 x 3 reel grid -- centered, with comfortable breathing room above
+# (below the bg title) and below (above the GIRAR button).
 BORDER = 2
-COL_GAP = 12
-REEL_COL_W = CELL + 2 * BORDER         # 52
-REEL_COL_H = 3 * CELL + 2 * BORDER     # 148
-TOTAL_W    = 3 * REEL_COL_W + 2 * COL_GAP   # 180
+COL_GAP = 14
+REEL_COL_W = CELL + 2 * BORDER         # 44
+REEL_COL_H = 3 * CELL + 2 * BORDER     # 124
+TOTAL_W    = 3 * REEL_COL_W + 2 * COL_GAP   # 160
 
-REEL_X_START = (W - TOTAL_W) // 2      # 70
-REEL_Y_TOP   = 42                       # clears the bg title at the top
+REEL_X_START = (W - TOTAL_W) // 2      # 80
+REEL_Y_TOP   = 56                       # 18 px gap below title
 REEL_X = [REEL_X_START + i * (REEL_COL_W + COL_GAP) for i in range(3)]
 
 # big "GIRAR" button at the bottom
 BTN_W, BTN_H = 110, 34
 BTN_X = (W - BTN_W) // 2
-BTN_Y = REEL_Y_TOP + REEL_COL_H + 8     # 198
+BTN_Y = REEL_Y_TOP + REEL_COL_H + 16    # 196 -- 16 px gap below reels
 
 
 # -------------------- pre-load BIG bitmaps -------------------------
