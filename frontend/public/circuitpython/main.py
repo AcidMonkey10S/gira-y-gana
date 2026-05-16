@@ -39,13 +39,22 @@ bundle that matches your CircuitPython version:
 Just drop the matching folders into /lib/ on the CIRCUITPY drive.
 
 ----------------------------------------------------------------
-WHY color_depth=8 (and not 16):
+WHY color_depth=8 AND a 160x120 background:
 
-   320 x 240 @ color_depth=16 -> 153,600 byte FB + DMA scratch
-                                 = ~165 KB  -> won't fit on a plain
-                                 RP2040 (264 KB SRAM) once CircuitPython
-                                 + displayio + the bg bitmap are loaded.
-   320 x 240 @ color_depth=8  ->  76,800 byte FB (~90 KB total) -> fits.
+   * picodvi.Framebuffer(320, 240, color_depth=16) needs ~165 KB
+     contiguous SRAM. The RP2040 only has 264 KB total -- after
+     CircuitPython + displayio + bitmap allocations there is not
+     enough contiguous heap left, hence the original
+     `MemoryError: allocating 165132 bytes`.
+     Going to color_depth=8 drops the framebuffer to ~77 KB.
+
+   * Even at color_depth=8, a SECOND 320x240 8-bit bitmap (the bg)
+     adds another 76,800 bytes of contiguous heap demand on top of
+     the framebuffer. That also doesn't fit.
+     -> we render the background at 160 x 120 (~19 KB) and put it
+        inside a displayio.Group(scale=2) so it still covers the
+        whole 320 x 240 screen. Slight pixelation, but it fits and
+        looks fine behind the reels.
 ================================================================
 """
 
@@ -107,14 +116,20 @@ root = displayio.Group()
 display.root_group = root
 
 
-# --- 1. background image ------------------------------------------
+# --- 1. background image (160x120 art, scaled x2 to fill 320x240) ---
+# We can't fit a full-size 320x240 bg bitmap in RAM next to the picodvi
+# framebuffer on a plain RP2040, so we keep the source bitmap small and
+# upscale it via a displayio.Group with scale=2. Slightly pixelated but
+# perfectly readable.
 gc.collect()
 bg_bmp, bg_pal = adafruit_imageload.load(
     "/bg.bmp",
     bitmap=displayio.Bitmap,
     palette=displayio.Palette,
 )
-root.append(displayio.TileGrid(bg_bmp, pixel_shader=bg_pal))
+bg_group = displayio.Group(scale=2)
+bg_group.append(displayio.TileGrid(bg_bmp, pixel_shader=bg_pal))
+root.append(bg_group)
 
 
 # --- 2. symbol sheet (60 x 240, 4 stacked symbols) ----------------
