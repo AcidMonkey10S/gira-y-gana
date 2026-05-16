@@ -39,10 +39,13 @@ def flatten(img, bg_color=(0, 0, 0)):
     return out
 
 
-def to_indexed_bmp(rgb_img, out_path, colors=256):
+def to_indexed_bmp(rgb_img, out_path, colors=256, dither=True):
     """Quantize to <= `colors` palette and save as 8-bit indexed BMP."""
-    p = rgb_img.quantize(colors=colors, method=Image.MEDIANCUT,
-                         dither=Image.FLOYDSTEINBERG)
+    p = rgb_img.quantize(
+        colors=colors,
+        method=Image.MEDIANCUT,
+        dither=Image.FLOYDSTEINBERG if dither else Image.NONE,
+    )
     # PIL writes 8-bit indexed BMPs when mode == 'P'
     p.save(out_path, format="BMP")
     return p
@@ -61,18 +64,25 @@ print("wrote bg.bmp", os.path.getsize(os.path.join(OUT, "bg.bmp")), "bytes")
 
 # ---------- symbol sheet (60x240, 4 stacked symbols) ----------
 order = ["burger", "wings", "coke", "fries"]   # MUST match NAMES in main.py
-CELL_SIZE = 40   # tile size in symbols.bmp -- MUST match CELL in main.py
-                 # (40px tiles leave generous breathing room between the
-                 # title bar at the top, the reels, and the GIRAR button.)
+CELL_SIZE = 48   # tile size in symbols.bmp -- MUST match CELL in main.py
+
+# Use the HI-RES 240x240 source art (frontend/public/symbols/*.png) and
+# downsample to CELL_SIZE with LANCZOS for a clean, smooth result. The
+# 60x60 versions in symbols/pico60/ were already pre-pixelated, so going
+# back to the 240x240 originals gives much sharper symbols on the Pico.
 sheet = Image.new("RGB", (CELL_SIZE, CELL_SIZE * len(order)), (0, 0, 0))
 for i, name in enumerate(order):
-    p = os.path.join(SRC, "symbols", "pico60", f"{name}.png")
-    s = flatten(Image.open(p), bg_color=(0, 0, 0))
+    p_hi = os.path.join(SRC, "symbols", f"{name}.png")          # 240x240
+    p_lo = os.path.join(SRC, "symbols", "pico60", f"{name}.png")  # 60x60
+    src_path = p_hi if os.path.exists(p_hi) else p_lo
+    s = flatten(Image.open(src_path), bg_color=(0, 0, 0))
     if s.size != (CELL_SIZE, CELL_SIZE):
         s = s.resize((CELL_SIZE, CELL_SIZE), Image.LANCZOS)
     sheet.paste(s, (0, i * CELL_SIZE))
-# 64 colours is plenty for 4 stylised cartoon symbols and keeps the BMP small
-to_indexed_bmp(sheet, os.path.join(OUT, "symbols.bmp"), colors=64)
+# 128 colours + NO DITHERING -> clean, flat-shaded cartoon symbols
+# (dithering scatters grainy noise pixels which look terrible on a 48px tile).
+to_indexed_bmp(sheet, os.path.join(OUT, "symbols.bmp"),
+               colors=128, dither=False)
 print("wrote symbols.bmp", os.path.getsize(os.path.join(OUT, "symbols.bmp")), "bytes")
 
 print("done ->", OUT)

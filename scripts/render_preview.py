@@ -9,17 +9,17 @@ ART  = os.path.join(ROOT, "frontend", "public")
 OUT  = os.path.join(ART, "circuitpython", "preview.png")
 
 W, H = 320, 240
-CELL = 40
+CELL = 48
 BORDER = 2
 COL_GAP = 14
 REEL_COL_W = CELL + 2 * BORDER
 REEL_COL_H = 3 * CELL + 2 * BORDER
 TOTAL_W = 3 * REEL_COL_W + 2 * COL_GAP
 REEL_X_START = (W - TOTAL_W) // 2
-REEL_Y_TOP = 56
+REEL_Y_TOP = 44
 BTN_W, BTN_H = 140, 40
 BTN_X = (W - BTN_W) // 2
-BTN_Y = REEL_Y_TOP + REEL_COL_H + 12
+BTN_Y = REEL_Y_TOP + REEL_COL_H + 6
 
 # load bg.bmp (the Pico will show exactly this)
 bg = Image.open(os.path.join(ART, "circuitpython", "bg.bmp")).convert("RGB")
