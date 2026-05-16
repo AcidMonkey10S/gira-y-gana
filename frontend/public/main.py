@@ -119,9 +119,9 @@ REEL_Y_TOP   = 56                       # 18 px gap below title
 REEL_X = [REEL_X_START + i * (REEL_COL_W + COL_GAP) for i in range(3)]
 
 # big "GIRAR" button at the bottom
-BTN_W, BTN_H = 110, 34
+BTN_W, BTN_H = 140, 40
 BTN_X = (W - BTN_W) // 2
-BTN_Y = REEL_Y_TOP + REEL_COL_H + 16    # 196 -- 16 px gap below reels
+BTN_Y = REEL_Y_TOP + REEL_COL_H + 12    # 192 -- 12 px gap below reels
 
 
 # -------------------- pre-load BIG bitmaps -------------------------
@@ -197,7 +197,7 @@ for i in range(3):
 
 
 # --- 4. GIRAR button (rounded "pill" shape) ----------------------
-BTN_RADIUS = 13                # corner radius -- ~ BTN_H / 2.5
+BTN_RADIUS = 16                # corner radius -- ~ BTN_H / 2.5
 
 def _in_rounded_rect(x, y, w, h, r):
     """True if (x, y) is inside a w x h rounded rect with corner radius r."""
@@ -247,10 +247,25 @@ btn_pal[2] = 0xFFC828                   # gold border
 btn_tg = displayio.TileGrid(btn_bmp, pixel_shader=btn_pal, x=BTN_X, y=BTN_Y)
 root.append(btn_tg)
 
-btn_label = label.Label(
-    terminalio.FONT, text="GIRAR", color=0xFFFFFF, scale=2,
+# Bigger, BLACK, BOLD "GIRAR".
+# terminalio.FONT has no bold weight, so we fake bold by stacking TWO
+# identical labels offset by 1 px on x -- every stroke becomes 1 px
+# wider, giving a proper bold appearance on the bitmap font.
+BTN_LABEL_COLOR = 0x000000
+_btn_cx = W // 2
+_btn_cy = BTN_Y + BTN_H // 2
+
+btn_label_shadow = label.Label(
+    terminalio.FONT, text="GIRAR", color=BTN_LABEL_COLOR, scale=3,
     anchor_point=(0.5, 0.5),
-    anchored_position=(W // 2, BTN_Y + BTN_H // 2),
+    anchored_position=(_btn_cx + 1, _btn_cy),   # +1 px to thicken strokes
+)
+root.append(btn_label_shadow)
+
+btn_label = label.Label(
+    terminalio.FONT, text="GIRAR", color=BTN_LABEL_COLOR, scale=3,
+    anchor_point=(0.5, 0.5),
+    anchored_position=(_btn_cx, _btn_cy),
 )
 root.append(btn_label)
 
@@ -334,7 +349,9 @@ def play_spin(spin_idx):
 
     # jackpot? (3-of-a-kind on the middle / payline row)
     if finals_mid[0] == finals_mid[1] == finals_mid[2]:
-        btn_label.text = ""           # hide GIRAR so msg can take over the button
+        # hide both copies of GIRAR so the celebration message owns the button
+        btn_label.text = ""
+        btn_label_shadow.text = ""
         msg.text = "JACKPOT! " + NAMES[finals_mid[0]]
         for i in range(10):
             msg.color = 0xFF2020 if i % 2 == 0 else 0xFFC828
@@ -344,6 +361,7 @@ def play_spin(spin_idx):
         time.sleep(0.6)
         msg.text = ""
         btn_label.text = "GIRAR"
+        btn_label_shadow.text = "GIRAR"
         btn_pal[1] = 0xC81428
     # losing spin: stay silent
 

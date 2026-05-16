@@ -17,9 +17,9 @@ REEL_COL_H = 3 * CELL + 2 * BORDER
 TOTAL_W = 3 * REEL_COL_W + 2 * COL_GAP
 REEL_X_START = (W - TOTAL_W) // 2
 REEL_Y_TOP = 56
-BTN_W, BTN_H = 110, 34
+BTN_W, BTN_H = 140, 40
 BTN_X = (W - BTN_W) // 2
-BTN_Y = REEL_Y_TOP + REEL_COL_H + 16
+BTN_Y = REEL_Y_TOP + REEL_COL_H + 12
 
 # load bg.bmp (the Pico will show exactly this)
 bg = Image.open(os.path.join(ART, "circuitpython", "bg.bmp")).convert("RGB")
@@ -49,12 +49,12 @@ for c in range(3):
     draw.line([x0, pay_y_bot, x0 + REEL_COL_W - 1, pay_y_bot], fill=(255, 200, 40), width=1)
 
 # GIRAR button (rounded pill)
-BTN_R = 13
+BTN_R = 16
 draw.rounded_rectangle([BTN_X, BTN_Y, BTN_X + BTN_W - 1, BTN_Y + BTN_H - 1],
                        radius=BTN_R, fill=(200, 20, 40),
                        outline=(255, 200, 40), width=2)
 try:
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
 except Exception:
     font = ImageFont.load_default()
 text = "GIRAR"
@@ -62,7 +62,7 @@ bbox = draw.textbbox((0, 0), text, font=font)
 tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 draw.text((BTN_X + (BTN_W - tw) // 2 - bbox[0],
            BTN_Y + (BTN_H - th) // 2 - bbox[1]),
-          text, fill=(255, 255, 255), font=font)
+          text, fill=(0, 0, 0), font=font)
 
 canvas.save(OUT)
 print("preview ->", OUT)
