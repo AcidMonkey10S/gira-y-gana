@@ -356,14 +356,18 @@ gc.collect()
 
 # -------------------- helpers -------------------------------------
 def set_button_state(spinning):
-    """Recolour the GIRAR button to give visual feedback."""
+    """Recolour AND retext the GIRAR/GIRANDO button to give visual feedback."""
     if spinning:
         btn_pal[1] = 0x6E0814           # darker red while spinning
-        btn_label.color = 0xFFC828      # GIRAR turns gold during spin
+        btn_label.text = "GIRANDO"
+        btn_label_shadow.text = "GIRANDO"
+        btn_label.color = 0xFFC828      # text turns gold during spin
         btn_label_shadow.color = 0xFFC828
     else:
         btn_pal[1] = 0xC81428           # idle red
-        btn_label.color = BTN_LABEL_COLOR        # GIRAR back to BLACK
+        btn_label.text = "GIRAR"
+        btn_label_shadow.text = "GIRAR"
+        btn_label.color = BTN_LABEL_COLOR        # text back to BLACK
         btn_label_shadow.color = BTN_LABEL_COLOR
 
 
