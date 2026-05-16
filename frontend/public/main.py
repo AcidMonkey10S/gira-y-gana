@@ -111,37 +111,42 @@ REEL_TOP = (H - REEL_H) // 2 + 6
 REEL_X = [(W - TOTAL_W) // 2 + i * (REEL_W + GAP) for i in range(3)]
 
 
-# -------------------- scene ----------------------------------------
-root = displayio.Group()
-display.root_group = root
-
-
-# --- 1. background image (160x120 art, scaled x2 to fill 320x240) ---
-# We can't fit a full-size 320x240 bg bitmap in RAM next to the picodvi
-# framebuffer on a plain RP2040, so we keep the source bitmap small and
-# upscale it via a displayio.Group with scale=2. Slightly pixelated but
-# perfectly readable.
+# -------------------- pre-load BIG bitmaps -------------------------
+# Order matters! On a plain RP2040 the heap fragments fast. We load the
+# two largest contiguous bitmaps RIGHT after the framebuffer is set up
+# and BEFORE creating any Groups / Palettes / Labels that would punch
+# small holes into the remaining free memory. With this ordering the
+# loads happen against a still-clean heap.
 gc.collect()
 bg_bmp, bg_pal = adafruit_imageload.load(
     "/bg.bmp",
     bitmap=displayio.Bitmap,
     palette=displayio.Palette,
 )
-bg_group = displayio.Group(scale=2)
-bg_group.append(displayio.TileGrid(bg_bmp, pixel_shader=bg_pal))
-root.append(bg_group)
-
-
-# --- 2. symbol sheet (60 x 240, 4 stacked symbols) ----------------
 gc.collect()
 sheet, sheet_pal = adafruit_imageload.load(
     "/symbols.bmp",
     bitmap=displayio.Bitmap,
     palette=displayio.Palette,
 )
+gc.collect()
 
 
-# --- 3. yellow reel-window borders --------------------------------
+# -------------------- scene ----------------------------------------
+root = displayio.Group()
+display.root_group = root
+
+
+# --- 1. background image (160x120 art, scaled x2 to fill 320x240) ---
+# A full-size 320x240 bg bitmap does not fit in RAM next to the picodvi
+# framebuffer on a plain RP2040, so the source bitmap stays small and
+# we upscale it via a displayio.Group with scale=2.
+bg_group = displayio.Group(scale=2)
+bg_group.append(displayio.TileGrid(bg_bmp, pixel_shader=bg_pal))
+root.append(bg_group)
+
+
+# --- 2. yellow reel-window borders --------------------------------
 def make_frame_bitmap():
     f = displayio.Bitmap(REEL_W, REEL_H, 2)
     # top + bottom (2 px thick)
@@ -165,7 +170,7 @@ frame_pal.make_transparent(0)   # let the background show through
 frame_pal[1] = 0xFFC828         # gold border
 
 
-# --- 4. three reels -----------------------------------------------
+# --- 3. three reels (use the pre-loaded `sheet`) ------------------
 reels = []
 for i in range(3):
     g = displayio.Group(x=REEL_X[i], y=REEL_TOP)
@@ -184,7 +189,7 @@ for i in range(3):
     reels.append(tg)
 
 
-# --- 5. message line (jackpot text) -------------------------------
+# --- 4. message line (jackpot text) -------------------------------
 msg = label.Label(
     terminalio.FONT, text="", color=0xFFE070, scale=2,
     anchor_point=(0.5, 1.0),
