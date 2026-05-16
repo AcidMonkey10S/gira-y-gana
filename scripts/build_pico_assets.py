@@ -7,15 +7,14 @@ Inputs (project art):
   frontend/public/symbols/pico60/{symbol}.png  (60x60 RGBA)
 
 Outputs (drop next to main.py on CIRCUITPY drive):
-  frontend/public/circuitpython/bg.bmp         (160x120, 8-bit indexed, ~19 KB)
-                                               -- main.py renders this through
-                                                  a Group(scale=2) so it fills
-                                                  the full 320x240 screen. We
-                                                  HAVE to keep it small: a
-                                                  full 320x240 background plus
-                                                  the picodvi framebuffer does
-                                                  not fit in the RP2040's
-                                                  264 KB of contiguous SRAM.
+  frontend/public/circuitpython/bg.bmp         (320x240, 8-bit indexed, ~77 KB)
+                                               -- main.py reads this through
+                                                  displayio.OnDiskBitmap so it
+                                                  uses ~0 bytes of RAM (pixels
+                                                  stream from flash on demand).
+                                                  That's how we afford a full
+                                                  320x240 background on the
+                                                  RP2040 alongside picodvi.
   frontend/public/circuitpython/symbols.bmp    (60x240,  8-bit indexed, ~14 KB)
 
 The symbols are stacked vertically into ONE sheet so a single
@@ -52,11 +51,10 @@ def to_indexed_bmp(rgb_img, out_path, colors=256):
 # ---------- background ----------
 bg = Image.open(os.path.join(SRC, "bg.png"))
 bg = flatten(bg, bg_color=(10, 0, 20))
-# Center-crop+resize so we keep the central GIRA Y GANA + starburst.
-# We render at HALF resolution (160x120) and let main.py upscale x2 via a
-# displayio.Group(scale=2). A full 320x240 background does not fit in
-# RP2040 SRAM next to the picodvi framebuffer.
-bg_fit = ImageOps.fit(bg, (160, 120), method=Image.LANCZOS,
+# Center-crop+resize to 320x240. Full screen resolution is fine here
+# because main.py loads bg.bmp via displayio.OnDiskBitmap, which streams
+# pixels straight from flash (~0 bytes of SRAM cost).
+bg_fit = ImageOps.fit(bg, (320, 240), method=Image.LANCZOS,
                       centering=(0.5, 0.5))
 to_indexed_bmp(bg_fit, os.path.join(OUT, "bg.bmp"), colors=256)
 print("wrote bg.bmp", os.path.getsize(os.path.join(OUT, "bg.bmp")), "bytes")

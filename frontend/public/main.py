@@ -39,22 +39,32 @@ bundle that matches your CircuitPython version:
 Just drop the matching folders into /lib/ on the CIRCUITPY drive.
 
 ----------------------------------------------------------------
-WHY color_depth=8 AND a 160x120 background:
+WHY color_depth=8 AND OnDiskBitmap for the background:
 
    * picodvi.Framebuffer(320, 240, color_depth=16) needs ~165 KB
-     contiguous SRAM. The RP2040 only has 264 KB total -- after
-     CircuitPython + displayio + bitmap allocations there is not
-     enough contiguous heap left, hence the original
+     contiguous SRAM. The RP2040 only has 264 KB total. After
+     CircuitPython + displayio is loaded, there isn't enough
+     contiguous heap left, hence the original
      `MemoryError: allocating 165132 bytes`.
      Going to color_depth=8 drops the framebuffer to ~77 KB.
 
-   * Even at color_depth=8, a SECOND 320x240 8-bit bitmap (the bg)
-     adds another 76,800 bytes of contiguous heap demand on top of
-     the framebuffer. That also doesn't fit.
-     -> we render the background at 160 x 120 (~19 KB) and put it
-        inside a displayio.Group(scale=2) so it still covers the
-        whole 320 x 240 screen. Slight pixelation, but it fits and
-        looks fine behind the reels.
+   * Even at color_depth=8, ALSO loading a 320x240 background
+     bitmap into RAM (another 76 KB) does not fit. And after
+     loading any partial bg, the heap fragments so badly that
+     even the small (14 KB) symbols sheet can no longer be
+     allocated.
+     -> the background is loaded with `displayio.OnDiskBitmap`,
+        which streams pixels straight from flash and uses ~0
+        bytes of SRAM. That leaves the heap clean for the
+        symbols sheet.
+
+   Effective RAM budget:
+       framebuffer (320x240x8)  ~77 KB
+       symbols sheet (60x240x8) ~14 KB
+       bg (OnDiskBitmap)          0 KB
+       everything else           ~5 KB
+       --------------------------------
+                       total   ~96 KB    (out of 264 KB)
 ================================================================
 """
 
@@ -112,17 +122,15 @@ REEL_X = [(W - TOTAL_W) // 2 + i * (REEL_W + GAP) for i in range(3)]
 
 
 # -------------------- pre-load BIG bitmaps -------------------------
-# Order matters! On a plain RP2040 the heap fragments fast. We load the
-# two largest contiguous bitmaps RIGHT after the framebuffer is set up
-# and BEFORE creating any Groups / Palettes / Labels that would punch
-# small holes into the remaining free memory. With this ordering the
-# loads happen against a still-clean heap.
+# Strategy:
+#   * The background is the biggest piece of art (320x240). We load it
+#     with displayio.OnDiskBitmap, which streams pixels from flash and
+#     uses ~0 bytes of SRAM. That keeps the heap clean.
+#   * The symbol sheet (60x240, ~14 KB) is loaded into RAM with
+#     adafruit_imageload because the reel TileGrids change tile indices
+#     every animation frame -- random access from flash would be slow.
 gc.collect()
-bg_bmp, bg_pal = adafruit_imageload.load(
-    "/bg.bmp",
-    bitmap=displayio.Bitmap,
-    palette=displayio.Palette,
-)
+bg_bmp = displayio.OnDiskBitmap("/bg.bmp")     # 0 RAM, just a file handle
 gc.collect()
 sheet, sheet_pal = adafruit_imageload.load(
     "/symbols.bmp",
@@ -137,13 +145,8 @@ root = displayio.Group()
 display.root_group = root
 
 
-# --- 1. background image (160x120 art, scaled x2 to fill 320x240) ---
-# A full-size 320x240 bg bitmap does not fit in RAM next to the picodvi
-# framebuffer on a plain RP2040, so the source bitmap stays small and
-# we upscale it via a displayio.Group with scale=2.
-bg_group = displayio.Group(scale=2)
-bg_group.append(displayio.TileGrid(bg_bmp, pixel_shader=bg_pal))
-root.append(bg_group)
+# --- 1. background image (full 320x240, streamed from flash) ------
+root.append(displayio.TileGrid(bg_bmp, pixel_shader=bg_bmp.pixel_shader))
 
 
 # --- 2. yellow reel-window borders --------------------------------
