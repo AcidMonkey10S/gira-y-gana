@@ -61,9 +61,9 @@ print("wrote bg.bmp", os.path.getsize(os.path.join(OUT, "bg.bmp")), "bytes")
 
 # ---------- symbol sheet (60x240, 4 stacked symbols) ----------
 order = ["burger", "wings", "coke", "fries"]   # MUST match NAMES in main.py
-CELL_SIZE = 54   # tile size in symbols.bmp -- MUST match CELL in main.py
-                 # (54px tiles let the 3x3 reel grid + GIRAR button all fit
-                 # on a 320x240 screen with comfortable margins.)
+CELL_SIZE = 48   # tile size in symbols.bmp -- MUST match CELL in main.py
+                 # (48px tiles let the 3x3 reel grid fit BELOW the title bar
+                 # of the new bg AND leave room for the GIRAR button.)
 sheet = Image.new("RGB", (CELL_SIZE, CELL_SIZE * len(order)), (0, 0, 0))
 for i, name in enumerate(order):
     p = os.path.join(SRC, "symbols", "pico60", f"{name}.png")

@@ -102,25 +102,25 @@ btn.pull = digitalio.Pull.UP
 # -------------------- game tuning ----------------------------------
 WIN_EVERY = 50           # guaranteed 3-of-a-kind every Nth press
 
-CELL = 54                # symbol tile size in symbols.bmp
+CELL = 48                # symbol tile size in symbols.bmp
 N_SYM = 4
 NAMES = ("BURGER", "WINGS", "COKE", "FRIES")  # MUST match build_pico_assets.py
 
-# 3 x 3 reel grid
+# 3 x 3 reel grid -- placed UNDER the bg title and ABOVE the GIRAR button
 BORDER = 2
 COL_GAP = 12
-REEL_COL_W = CELL + 2 * BORDER         # 58
-REEL_COL_H = 3 * CELL + 2 * BORDER     # 166
-TOTAL_W    = 3 * REEL_COL_W + 2 * COL_GAP   # 198
+REEL_COL_W = CELL + 2 * BORDER         # 52
+REEL_COL_H = 3 * CELL + 2 * BORDER     # 148
+TOTAL_W    = 3 * REEL_COL_W + 2 * COL_GAP   # 180
 
-REEL_X_START = (W - TOTAL_W) // 2      # 61
-REEL_Y_TOP   = 18
+REEL_X_START = (W - TOTAL_W) // 2      # 70
+REEL_Y_TOP   = 42                       # clears the bg title at the top
 REEL_X = [REEL_X_START + i * (REEL_COL_W + COL_GAP) for i in range(3)]
 
 # big "GIRAR" button at the bottom
 BTN_W, BTN_H = 110, 34
 BTN_X = (W - BTN_W) // 2
-BTN_Y = REEL_Y_TOP + REEL_COL_H + 6
+BTN_Y = REEL_Y_TOP + REEL_COL_H + 8     # 198
 
 
 # -------------------- pre-load BIG bitmaps -------------------------
@@ -225,11 +225,13 @@ btn_label = label.Label(
 root.append(btn_label)
 
 
-# --- 5. jackpot message (sits just above the reels) ---------------
+# --- 5. jackpot message (overlays the GIRAR button when winning) --
+# Appended AFTER the button so it draws on top. Empty by default;
+# set msg.text on a jackpot to flash a celebration over the button.
 msg = label.Label(
     terminalio.FONT, text="", color=0xFFE070, scale=2,
-    anchor_point=(0.5, 0.0),
-    anchored_position=(W // 2, 2),
+    anchor_point=(0.5, 0.5),
+    anchored_position=(W // 2, BTN_Y + BTN_H // 2),
 )
 root.append(msg)
 
@@ -302,13 +304,17 @@ def play_spin(spin_idx):
 
     # jackpot? (3-of-a-kind on the middle / payline row)
     if finals_mid[0] == finals_mid[1] == finals_mid[2]:
+        btn_label.text = ""           # hide GIRAR so msg can take over the button
         msg.text = "JACKPOT! " + NAMES[finals_mid[0]]
         for i in range(10):
             msg.color = 0xFF2020 if i % 2 == 0 else 0xFFC828
+            btn_pal[1] = 0xFFC828 if i % 2 == 0 else 0xC81428    # button flashes too
             time.sleep(0.15)
         msg.color = 0xFFE070
         time.sleep(0.6)
         msg.text = ""
+        btn_label.text = "GIRAR"
+        btn_pal[1] = 0xC81428
     # losing spin: stay silent
 
 
